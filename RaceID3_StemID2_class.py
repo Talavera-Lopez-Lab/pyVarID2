@@ -12,9 +12,12 @@ class SCseq():
     ):
         super().__init__()
         self.expdata = expdata
+        '''The raw expression data matrix with cells as columns and genes as rows in sparse matrix format.'''
         self.ndata = expdata
+        '''Filtered data with expression normalized to one for each cell.'''
         self.fdata = expdata
         self.filterpar = {}
+        '''dict containing the parameters used for cell and gene filterung'''
 
     def filterdata(
             self,
