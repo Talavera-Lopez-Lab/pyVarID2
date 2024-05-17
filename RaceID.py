@@ -96,16 +96,17 @@ class SCseq():
         #    d = r.calculate_spearman_distance(x)
 
         # discard genes correlating to genes in CGenes
+        # this section isnt fully tested to be working correctly yet
         if CGenes:
             CGenes = [gene for gene in CGenes if gene in genes]
             h = None
             if len(CGenes) > 0:
                 if len(CGenes) == 1:
-                    #k = np.corrcoef(self.ndata.loc[genes, :].values.T, self.ndata.loc[CGenes[0], :].values)[0]
-                    k = r.cor(self.ndata.loc[genes, :].values.T, self.ndata.loc[CGenes[0], :].values)[0]
+                    pass
                 else:
-                    #k = np.corrcoef(self.ndata.loc[genes, :].values.T, self.ndata.loc[CGenes, :].values.T)
-                    k = r.cor(self.ndata.loc[genes, :].values.T, self.ndata.loc[CGenes, :].values.T)
+                    genes_df = self.ndata[self.ndata.index.isin(genes)]
+                    CGenes_df = self.ndata[self.ndata.index.isin(CGenes)]
+                    k = r.cor(genes_df, CGenes_df)
                 h = np.apply_along_axis(lambda x: np.max(np.abs(x)), 1, k) < ccor
                 h[np.isnan(h)] = True
             if len(h) > 0:
@@ -124,16 +125,16 @@ class SCseq():
         } 
 
         # compute polynomial fit of background model used for outlier identification from non-normalized data
-        bg = RaceID_utils.fitbackground(self.expdata.loc[self.genes, :]) 
+        bg = RaceID_utils.fitbackground(self.expdata.loc[self.genes, :][self.ndata.columns]) 
         self.background['vfit'] = bg['fit']
 
         # compute genes with variability above background level from normalized data for feature selection
         bg = RaceID_utils.fitbackground(self.getfdata())
         self.cluster['features'] = bg['n']
 
-        ## batch correction by batchelor::mnnCorrect after filtering (skipping this for now)
-        #if LBatch is not None and len(LBatch) > 1 and bmode == 'mnnCorrect':
-        #    pass
+        # batch correction by batchelor::mnnCorrect after filtering (skipping this for now)
+        if LBatch is not None and len(LBatch) > 1 and bmode == 'mnnCorrect':
+            pass
 
         #self.ndata = self.expdata.loc[:, self.expdata.apply(lambda col: col.sum(skipna=True), axis=0) >= mintotal]
 
