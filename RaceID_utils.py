@@ -1,39 +1,30 @@
 import numpy as np
-from scipy.stats import linregress
+import pandas as pd
+import statsmodels.formula.api as smf
 
 def fitbackground(x, mthr=-1):
-    '''this one needs some work still not doing as in the original R source code:
-    fitbackground <- function(x,mthr=-1){
-    x <- as.matrix(x)
-    m <- rowMeans(x)
-    v <- rowVars(x)
-  
-    ml <- log2(m)
-    vl <- log2(v)
-    f <- ml > -Inf & vl > -Inf
-    ml <- ml[f]
-    vl <- vl[f]
-    mm <- -8
-    repeat{
-        fit <- lm(vl ~ ml + I(ml^2)) 
-        if( coef(fit)[3] >= 0 | mm >= mthr){
-            break
-        }
-        mm <- mm + .5
-        f <- ml > mm
-        ml <- ml[f]
-        vl <- vl[f]
-    }
-    
-    vln <- log2(v)  - log2(sapply(m,FUN=uvar,fit=fit))
-    n <- names(m)[vln>0]
-    return(list(fit=fit,n=n))
-}
-'''
-    x = np.array(x)
+
+    def uvar(x, fit):
+        params = fit.params
+        bse = fit.bse
+        log2_x = np.log2(x)
+        intercept = params.iloc[0]
+        intercept_err = bse.iloc[0]
+        ml = params.iloc[1]
+        ml_err = bse.iloc[1]
+        Iml2 = params.iloc[2]
+        Iml2_err = bse.iloc[2]
+        return 2**(intercept + intercept_err + log2_x * (ml + ml_err) + (Iml2 + Iml2_err) * log2_x ** 2)
+
+    def calculate_vln(v, m, fit):
+        # Apply the uvar function to each element in m
+        predicted_variances = np.array([uvar(mean, fit) for mean in m])
+        # Calculate log2 of v and the predicted variances
+        vln = np.log2(v) - np.log2(predicted_variances)
+        return vln
+
     m = np.mean(x, axis=1)
     v = np.var(x, axis=1)
-
     ml = np.log2(m)
     vl = np.log2(v)
     f = (ml > -np.inf) & (vl > -np.inf)
@@ -41,17 +32,14 @@ def fitbackground(x, mthr=-1):
     vl = vl[f]
     mm = -8
     while True:
-        fit = linregress(ml, vl)
-        if fit[3] >= 0 or mm >= mthr:
+        data = pd.DataFrame({'ml': ml, 'vl': vl})
+        fit = smf.ols(formula='vl ~ml + I(ml**2)', data=data).fit()
+        if fit.params.iloc[2] >0 or mm >=mthr:
             break
         mm += 0.5
         f = ml > mm
         ml = ml[f]
         vl = vl[f]
-
-    def uvar(x, fit):
-        return 2 ** (fit[1] + np.log2(x) * fit[0] + fit[2] * (np.log2(x) ** 2))
-
-    vln = np.log2(v) - np.log2(np.apply_along_axis(uvar, 0, m, fit=fit))
-    n = [name for name, val in zip(np.arange(len(m)), vln) if val > 0]
+    vln = calculate_vln(v, m, fit)
+    n = vln[vln>0].index.tolist()
     return {'fit': fit, 'n': n}
