@@ -1,6 +1,5 @@
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
-from scipy.stats import kendalltau, pearsonr, spearmanr
+import pandas as pd
 
 def scran_computeSumFactors(dataframe):
     pass
@@ -19,36 +18,35 @@ def calculate_spearman_distance(x):
 
     return distance_matrix
 
-def cor(x, y=None, use="everything", method="pearson"):
-    '''entirely chatgpt creation not tested yet'''
-    # Convert data to numpy arrays
-    x = np.asarray(x)
-    if y is not None:
-        y = np.asarray(y)
+def cor(
+        x,
+        y=None,
+        use='everything',
+        method='pearson'
+):
+    '''not entirely sure this works as intended yet'''
+    possible_use_values = [
+        'all.obs',
+        'complete.obs',
+        'pairwise.complete.obs',
+        'everything',
+        'na.or.complete',
+    ]
+    possible_method_values = ['pearson', 'kendall', 'spearman']
+    if use not in possible_use_values:
+        raise ValueError(f'invalid "use" argument, must be one of {possible_use_values}')
+    if method not in possible_method_values:
+        raise ValueError(f'invalid "method" argument, must be one of {possible_method_values}')
     
-    # Define handling of missing values
-    na_methods = ["all.obs", "complete.obs", "pairwise.complete.obs", "everything", "na.or.complete"]
-    na_method_idx = na_methods.index(use) if use in na_methods else None
-    if na_method_idx is None:
-        raise ValueError("Invalid 'use' argument")
+    def rank(u):
+        '''implementation only needed if methods == "kendall" or "spearman"'''
+        pass
+
+    if method == 'pearson':
+        corr = np.corrcoef(x.T, y.T, rowvar=False)[:x.T.shape[1], x.T.shape[1]:]
+        corr = pd.DataFrame(data=corr, index=x.T.columns, columns=y.T.columns)
+        #corr = np.corrcoef(x, rowvar=False)
+    elif method in ['kendall', 'spearman']:
+        print("Methods kendall and spearman are not yet implemented (and likely won't be)")
     
-    # Select correlation method
-    if method not in ["pearson", "kendall", "spearman"]:
-        raise ValueError("Invalid correlation method")
-    
-    # Calculate correlation based on method and missing value handling
-    if method == "pearson":
-        if y is None:
-            return pearsonr(x)
-        else:
-            return pearsonr(x, y)
-    elif na_method_idx in [1, 4]:
-        if y is None:
-            return kendalltau(x)
-        else:
-            return kendalltau(x, y)
-    else:
-        if y is None:
-            return spearmanr(x)
-        else:
-            return spearmanr(x, y)
+    return corr
