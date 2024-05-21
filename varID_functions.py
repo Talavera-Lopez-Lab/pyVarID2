@@ -115,4 +115,18 @@ def pruneKnn(
         distM = None
         if regNB:
             if offsetModel:
-                #regdata = compresiduals0()
+                pass #regdata = compResiduals0()
+            else:
+                pass #regData = compResiduals()
+            z = regData.pearsonRes
+        else:
+            regData = None
+            z = np.log((expData/colS*min(colS)) + 0.1)
+
+        if FSelect:
+            bg = fitBackVar(expData.loc[genes])
+            backModel = bg.fit
+            genes = bg.genes
+            expData = expData.loc[genes]
+
+        z = z.loc[genes]
