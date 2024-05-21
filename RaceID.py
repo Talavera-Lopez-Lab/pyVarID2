@@ -156,5 +156,11 @@ class SCseq():
         n = list(self.counts.index) if n is None else [name for name in self.counts.index if name in n]
         return self.ndata.loc[fgenes, n] * self.counts.min() + 0.1
 
+    def getExpData(self, genes=None):
+        expdata = self.expdata
+        if genes == None:
+            genes = self.genes
+        return expdata.loc[genes, :][self.ndata.columns]
+
 
 
