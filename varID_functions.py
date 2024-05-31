@@ -3,6 +3,41 @@ import numpy as np
 import multiprocessing
 import r_functions as r
 import statsmodels.api as sm
+from MASS import theta_ml
+from statsmodels.genmod.generalized_linear_model import GLM
+from statsmodels.genmod.families import Poisson
+
+# Assuming the theta_ml function is already defined
+# def theta_ml(y, mu, n=None, weights=None, limit=10, eps=np.finfo(float).eps**0.25, trace=False):
+#     # Implementation of theta_ml
+
+def nbRegr(x, model_formula, reg_data, reg_names):
+    reg_data['x'] = x
+    fit_theta = False
+    fit = False
+
+    try:
+        rg = GLM.from_formula(model_formula, reg_data, family=Poisson()).fit()
+        fit = True
+    except Exception as e:
+        fit = False
+
+    if fit:
+        try:
+            rg.theta = float(theta_ml(y=x, mu=rg.fittedvalues, limit=50))
+            fit_theta = True
+        except Exception as e:
+            rg.theta = np.nan
+
+    if fit:
+        co = rg.params.to_dict()
+        co['theta'] = rg.theta
+        return co
+    else:
+        co = {name: np.nan for name in reg_names}
+        co['theta'] = np.nan
+        return co
+
 
 def getFormula(b=None, reg_var=None):
     if reg_var is None:
@@ -15,6 +50,19 @@ def getFormula(b=None, reg_var=None):
     
     model_formula = f'x ~ {model_formula}'
     
+    return model_formula
+
+def getFormula0(b=None, reg_var=None):
+    if b is None and reg_var is None:
+        model_formula = 'x ~ 0'
+    else:
+        if reg_var is not None:
+            model_formula = ' + '.join(reg_var.columns)
+            if b is not None:
+                model_formula = f"( {model_formula} ): b + b"
+            elif b is not None:
+                model_formula = 'b'
+            model_formula = f"x ~ {model_formula} + 0"
     return model_formula
 
 
